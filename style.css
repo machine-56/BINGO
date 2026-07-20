@@ -1,33 +1,71 @@
 :root {
-    /* --- THE CONTROL PANEL --- */
-    /* Measurements & Thicknesses */
-    --thickness: 2px;
+    /* Color-Mix Architecture Calculations */
+    --pen-base: #000000;
+    --dot-color: color-mix(in srgb, var(--pen-base) 85%, transparent);
+    --strike-line-color: color-mix(in srgb, var(--pen-base) 65%, transparent);
+
     --strike-thickness: 2px;
-    --dot-size: 18px;
-    --tracker-cell-size: 45px;
-    --desktop-grid-height: 60vh;
-    
-    /* Background Colors */
-    --body-bg: #121212;
-    --cell-default-bg: #000000;
+    --grid-gap: 0px;
+    /* Default Fused Structure Initialization */
+    --cell-border-width: 3px;
+    --hover-reveal-time-delay: 260ms;
+
+    /* Base Default Theme Variables (Light Mode Profile) */
+    --body-bg: #f5f5f5;
+    --text-default-color: #222222;
+    --text-muted: #666666;
+    --cell-border-color: #222222;
+    --cell-default-bg: #ffffff;
     --cell-temp-bg: #a3ddff;
+    --cell-confirmed-bg: #ffffff;
+    --tracker-default-bg: #ffffff;
+    --tracker-active-bg: #222222;
+    --tracker-text-default: #222222;
+    --tracker-text-active: #ffffff;
+    --modal-box-bg: #ffffff;
+    --sidebar-bg: #ffffff;
+
+    /* Control Panel Custom Inputs System Colors */
+    --input-control-bg: #ffffff;
+    --input-control-border: #222222;
+    --input-control-checked-bg: #222222;
+    --input-control-checked-text: #ffffff;
+
+    --font-size-factor: 1.2rem;
+    --font-family-global: Arial, Helvetica, sans-serif;
+    --font-family-sidebar: Arial, Helvetica, sans-serif;
+}
+
+[data-theme="dark"] {
+    --pen-base: #ffffff;
+    --body-bg: #121212;
+    --text-default-color: #ffffff;
+    --text-muted: #aaa;
+    --cell-border-color: #ffffff;
+    --cell-default-bg: #000000;
     --cell-confirmed-bg: #000000;
     --tracker-default-bg: #000000;
     --tracker-active-bg: #ffffff;
-    --modal-box-bg: #222222;
-    
-    /* Content & Accent Colors */
-    --text-default-color: #ffffff;
-    --text-temp-color: #000000;
-    --text-peek-color: #ffffff15;
     --tracker-text-default: #ffffff;
     --tracker-text-active: #000000;
-    --dot-color: #ffffffce;
-    --strike-line-color: #ffffffa4;
-    --cell-border-color: #ffffff;
-    
-    /* Opacity Profiles */
-    --dot-default-opacity: 0.85;
+    --modal-box-bg: #222222;
+    --sidebar-bg: #1e1e1e;
+
+    --input-control-bg: #000000;
+    --input-control-border: #ffffff;
+    --input-control-checked-bg: #ffffff;
+    --input-control-checked-text: #000000;
+}
+
+/* Condition 1: Global selection turns everything (except sidebar) handwriting style */
+[data-font="handwriting"] {
+    --font-family-global: 'Caveat', cursive, sans-serif;
+    --font-size-factor: 1.2rem;
+}
+
+/* Condition 2: Handwriting is on AND user checks the checkbox allowing the sidebar to change */
+[data-font="handwriting"][data-ui-font-override="true"] {
+    --font-family-sidebar: 'Caveat', cursive, sans-serif;
 }
 
 * {
@@ -39,7 +77,8 @@
 body {
     background-color: var(--body-bg);
     color: var(--text-default-color);
-    font-family: 'Caveat', cursive, sans-serif;
+    font-family: var(--font-family-global);
+    /* Dynamically tracks chosen global typography style */
     min-height: 100vh;
     max-height: 100vh;
     overflow: hidden;
@@ -48,9 +87,17 @@ body {
     justify-content: center;
     align-items: center;
     padding: 1rem;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-/* BINGO Tracker Headers */
+.top-bar {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
+/* BINGO Letter Tracker Layouts */
 .bingo-tracker {
     display: flex;
     justify-content: space-evenly;
@@ -60,9 +107,9 @@ body {
 }
 
 .tracker-cell {
-    width: var(--tracker-cell-size);
-    height: var(--tracker-cell-size);
-    border: var(--thickness) solid var(--cell-border-color);
+    width: 45px;
+    height: 45px;
+    border: 2px solid var(--cell-border-color);
     background-color: var(--tracker-default-bg);
     color: var(--tracker-text-default);
     display: flex;
@@ -71,7 +118,6 @@ body {
     font-weight: bold;
     font-size: 1.1rem;
     cursor: pointer;
-    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
     border-radius: 4px;
     user-select: none;
 }
@@ -81,83 +127,112 @@ body {
     color: var(--tracker-text-active);
 }
 
-/* Responsive Square Grid Wrapper */
-.grid-wrapper {
+/* Grid Framework Containers */
+.grid-container {
     width: 100%;
     aspect-ratio: 1 / 1;
+    overflow: hidden;
+}
+
+.grid-wrapper {
+    width: 100%;
+    height: 100%;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: repeat(5, 1fr);
-    gap: 4px;
+    gap: var(--grid-gap);
+}
+
+/* Fused State Layout Modifications */
+.grid-wrapper.fused-grid {
+    padding: calc(var(--cell-border-width) / 2);
+}
+
+.grid-wrapper.fused-grid .cell {
+    margin-left: calc(var(--cell-border-width) * -1);
+    margin-top: calc(var(--cell-border-width) * -1);
+}
+
+.grid-wrapper.fused-grid .cell:nth-child(5n+1) {
+    margin-left: 0;
+}
+
+.grid-wrapper.fused-grid .cell:nth-child(-n+5) {
+    margin-top: 0;
 }
 
 @media (min-width: 768px) {
-    .grid-wrapper {
-        height: var(--desktop-grid-height);
+    .grid-container {
+        height: 60vh;
         width: auto;
     }
 }
 
-/* The Grid Cells */
+/* Individual Cell Attributes */
 .cell {
     position: relative;
     background-color: var(--cell-default-bg);
-    border: 3px solid var(--cell-border-color);
-    color: var(--text-default-color);
+    border: var(--cell-border-width) solid var(--cell-border-color);
+    color: var(--pen-base);
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 2.2rem;
+    font-family: var(--font-family-global);
+    font-size: var(--font-size-factor);
     cursor: pointer;
     user-select: none;
     overflow: hidden;
-    transition: background-color 0.3ms ease-in-out, color 0.3ms ease-in-out;
     -webkit-user-select: none;
-    -webkit-touch-callout: none;
 }
 
-/* Play Mode States */
 .cell.temp {
     background-color: var(--cell-temp-bg);
-    color: var(--text-temp-color);
+    color: #000000;
 }
 
 .cell.confirmed {
     background-color: var(--cell-confirmed-bg);
-    color: var(--text-peek-color);
+    color: var(--pen-base);
 }
 
-/* The Translucent Chip Dot */
+.cell.confirmed:not(:hover):not(:active) {
+    color: transparent;
+}
+
+.cell.confirmed:hover,
+.cell.confirmed:active {
+    color: color-mix(in srgb, var(--pen-base) 30%, transparent);
+    transition: color 0s linear var(--hover-reveal-time-delay);
+}
+
 .cell .marker-dot {
     display: none;
     position: absolute;
-    width: var(--dot-size);
-    height: var(--dot-size);
+    width: 18px;
+    height: 18px;
     background-color: var(--dot-color);
-    opacity: var(--dot-default-opacity);
     border-radius: 50%;
     z-index: 1;
     pointer-events: none;
-    transition: opacity 0.15s ease;
 }
 
 .cell.confirmed .marker-dot {
     display: block;
+    opacity: 1;
 }
 
-/* Hover & Tap-and-Hold Peek Mechanics */
 .cell.confirmed:hover .marker-dot,
 .cell.confirmed:active .marker-dot {
-    opacity: 0 !important; 
+    opacity: 0.01;
+    transition: opacity 0s linear var(--hover-reveal-time-delay);
 }
 
-/* Dynamic Stacking Lines Container */
+/* Strike Rendering Entities */
 .strike-line {
     position: absolute;
     background-color: var(--strike-line-color);
     z-index: 2;
     pointer-events: none;
-    border-radius: 2px;
 }
 
 .strike-line.horizontal {
@@ -192,7 +267,7 @@ body {
     transform: translate(-50%, -50%) rotate(-45deg);
 }
 
-/* Controls Area */
+/* Interface Action Triggers */
 .controls {
     margin-top: 2.5rem;
     display: flex;
@@ -202,14 +277,13 @@ body {
 .btn {
     padding: 0.75rem 1.5rem;
     font-size: 1.2rem;
-    font-family: inherit;
+    font-family: var(--font-family-global);
     border: none;
     border-radius: 5px;
     cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    transition: opacity 0.2s;
 }
 
 .btn:disabled {
@@ -217,22 +291,244 @@ body {
     cursor: not-allowed;
 }
 
-.btn-success { background-color: #198754; color: white; }
-.btn-danger { background-color: #dc3545; color: white; }
-.btn-secondary { background-color: #6c757d; color: white; }
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
 
-/* Modal Structure */
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Theme-dependent button outlines */
+.btn-outline-light {
+    background-color: transparent;
+    border: 2px solid #ffffff;
+    color: #ffffff;
+}
+
+.btn-outline-light:hover:not(:disabled) {
+    background-color: #ffffff;
+    color: #121212;
+}
+
+.btn-outline-dark {
+    background-color: transparent;
+    border: 2px solid #222222;
+    color: #222222;
+}
+
+.btn-outline-dark:hover:not(:disabled) {
+    background-color: #222222;
+    color: #ffffff;
+}
+
+/* Settings Menu Sidebar Control Area */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -100vw;
+    width: 100vw;
+    height: 100vh;
+    background-color: var(--sidebar-bg);
+    border-left: 2px solid var(--cell-border-color);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s ease;
+    color: var(--text-default-color);
+    font-family: var(--font-family-sidebar) !important;
+    /* Explicitly decoupled from global space rules */
+}
+
+@media (min-width: 576px) {
+    .sidebar {
+        width: 350px;
+        right: -350px;
+    }
+}
+
+.sidebar.open {
+    right: 0;
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--text-muted);
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--text-default-color);
+    cursor: pointer;
+}
+
+.sidebar-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.control-group {
+    margin-bottom: 1.5rem;
+}
+
+.control-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    font-size: 0.95rem;
+}
+
+/* Custom Native Checkbox Overwrites */
+.square-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    font-weight: normal !important;
+}
+
+.square-checkbox-label input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.box-check {
+    height: 18px;
+    width: 18px;
+    background-color: var(--input-control-bg);
+    border: 2px solid var(--input-control-border);
+    border-radius: 0px;
+    display: inline-block;
+    position: relative;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.square-checkbox-label input:checked~.box-check {
+    background-color: var(--input-control-checked-bg);
+    border-color: var(--input-control-checked-bg);
+}
+
+.box-check:after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--input-control-checked-text);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.square-checkbox-label input:checked~.box-check:after {
+    display: block;
+}
+
+/* Button Groups */
+.btn-group {
+    display: flex;
+    width: 100%;
+    border: 2px solid var(--input-control-border);
+    background-color: var(--input-control-border);
+    gap: 2px;
+}
+
+.btn-group-item {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    background: var(--input-control-bg);
+    color: var(--text-default-color);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-group-item.active {
+    background: var(--input-control-checked-bg);
+    color: var(--input-control-checked-text);
+    font-weight: bold;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--cell-default-bg);
+    color: var(--text-default-color);
+    border: 1px solid var(--text-muted);
+    border-radius: 0px;
+    outline: none;
+    font-family: inherit;
+}
+
+/* Geometric Rectangle Flat Slider */
+.full-width-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--text-muted);
+    outline: none;
+    margin: 1.2rem 0;
+}
+
+.full-width-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 22px;
+    background: var(--input-control-checked-bg);
+    border: 1px solid var(--input-control-border);
+    cursor: pointer;
+}
+
+.full-width-slider::-moz-range-thumb {
+    width: 12px;
+    height: 22px;
+    background: var(--input-control-checked-bg);
+    border: 1px solid var(--input-control-border);
+    cursor: pointer;
+}
+
+.numeric-indicator {
+    margin-left: 0.25rem;
+    font-family: monospace;
+    font-size: 1rem;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid var(--text-muted);
+    margin: 1.5rem 0;
+}
+
+/* Overlays Window Structures */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 3000;
     visibility: hidden;
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -246,11 +542,12 @@ body {
 .modal-box {
     background: var(--modal-box-bg);
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: 0px;
     border: 2px solid var(--cell-border-color);
     text-align: center;
     max-width: 400px;
     width: 90%;
+    color: var(--text-default-color);
 }
 
 .modal-actions {
@@ -258,4 +555,41 @@ body {
     justify-content: center;
     gap: 1rem;
     margin-top: 1.5rem;
+}
+
+/* Cookie Banners Rules */
+.cookie-banner {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 500px;
+    background: var(--modal-box-bg);
+    border: 2px solid var(--cell-border-color);
+    padding: 1rem;
+    z-index: 4000;
+    display: none;
+}
+
+.cookie-banner.show {
+    display: block;
+}
+
+.cookie-banner p {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: var(--text-default-color);
+}
+
+.cookie-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
 }

@@ -4,17 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Handwritten Bingo Card</title>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap" rel="stylesheet">
-    
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
-    <!-- B I N G O -->
+    <!-- Top Navigation Toolbar -->
+    <div class="top-bar">
+        <button id="sidebarToggleBtn" class="btn">
+            <i class="fa-solid fa-gear"></i> Settings
+        </button>
+    </div>
+
+    <!-- Letter Tracker -->
     <div class="bingo-tracker" id="trackerGroup">
         <div class="tracker-cell">B</div>
         <div class="tracker-cell">I</div>
@@ -24,11 +29,13 @@
     </div>
 
     <!-- 5x5 Grid Wrapper -->
-    <div class="grid-wrapper" id="bingoGrid"></div>
+    <div class="grid-container">
+        <div class="grid-wrapper" id="bingoGrid"></div>
+    </div>
 
     <!-- Actions Area -->
     <div class="controls">
-        <button id="startBtn" class="btn btn-success" disabled>
+        <button id="startBtn" class="btn" disabled>
             <i class="fa-solid fa-play"></i> Start
         </button>
         <button id="resetBtn" class="btn btn-danger">
@@ -36,15 +43,113 @@
         </button>
     </div>
 
+    <!-- Settings Sidebar -->
+    <div class="sidebar" id="settingsSidebar">
+        <div class="sidebar-header">
+            <h2>Configuration</h2>
+            <button id="sidebarCloseBtn" class="close-btn">&times;</button>
+        </div>
+        <div class="sidebar-body">
+            
+            <!-- View Mode Switch -->
+            <div class="control-group">
+                <label>View Profile</label>
+                <div class="btn-group">
+                    <button type="button" class="btn-group-item active" data-setting="viewMode" data-value="default">Default</button>
+                    <button type="button" class="btn-group-item" data-setting="viewMode" data-value="customised">Custom</button>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- Custom Options Panel -->
+            <div id="customSettingsPanel">
+                <!-- Typography System Control -->
+                <div class="control-group">
+                    <label>Typography</label>
+                    <div class="btn-group" style="margin-bottom: 0.75rem;">
+                        <button type="button" class="btn-group-item" data-setting="font" data-value="handwriting">Handwriting</button>
+                        <button type="button" class="btn-group-item active" data-setting="font" data-value="standard">Standard</button>
+                    </div>
+                    <label class="square-checkbox-label">
+                        <input type="checkbox" id="modApplyFontToUI">
+                        <span class="box-check"></span>
+                        <span>Also apply to Settings Menu</span>
+                    </label>
+                </div>
+
+                <!-- Theme Choice -->
+                <div class="control-group">
+                    <label>Theme</label>
+                    <div class="btn-group">
+                        <button type="button" class="btn-group-item" data-setting="theme" data-value="light">Light</button>
+                        <button type="button" class="btn-group-item" data-setting="theme" data-value="dark">Dark</button>
+                    </div>
+                </div>
+
+                <!-- Pen Colour Spectrum -->
+                <div class="control-group">
+                    <label>Pen Colour</label>
+                    <select id="penColorSelect" class="form-control">
+                        <option value="default">Black/White</option>
+                        <option value="blue">Blue</option>
+                        <option value="green">Green</option>
+                        <option value="red">Red</option>
+                    </select>
+                </div>
+
+                <!-- Custom Checkbox Modifiers -->
+                <div class="control-group">
+                    <label class="square-checkbox-label">
+                        <input type="checkbox" id="modCellColor">
+                        <span class="box-check"></span>
+                        <span>Apply pen colour to Cell Border</span>
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label class="square-checkbox-label">
+                        <input type="checkbox" id="modBingoColor">
+                        <span class="box-check"></span>
+                        <span>Apply pen colour to BINGO Tracker</span>
+                    </label>
+                </div>
+
+                <!-- Cross Width Range Slider -->
+                <div class="control-group">
+                    <label>Cross Width: <span id="widthVal" class="numeric-indicator">2</span></label>
+                    <input type="range" id="crossWidthSlider" min="1" max="5" step="1" value="2" class="full-width-slider">
+                </div>
+
+                <!-- Cell Border Structural Type -->
+                <div class="control-group">
+                    <label>Cell Border Style</label>
+                    <div class="btn-group">
+                        <button type="button" class="btn-group-item" data-setting="borderStyle" data-value="split">Split</button>
+                        <button type="button" class="btn-group-item" data-setting="borderStyle" data-value="fused">Fused</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Template Reuse Confirm Modal -->
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-box">
             <h3>Reuse same template?</h3>
-            <p style="margin-top: 0.5rem; color: #aaa;">This keeps your number arrangement but clears all markers.</p>
+            <p style="margin-top: 0.5rem; color: var(--text-muted);">This keeps your number arrangement but clears all markers.</p>
             <div class="modal-actions">
-                <button class="btn btn-success" id="modalYes">Yes</button>
+                <button class="btn" id="modalYes">Yes</button>
                 <button class="btn btn-secondary" id="modalNo">No</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Cookie Acceptance Banner -->
+    <div class="cookie-banner" id="cookieBanner">
+        <p>If you want to keep your customisations saved across visits, accept cookies. Otherwise, changes apply only to your session.</p>
+        <div class="cookie-actions">
+            <button id="cookieAccept" class="btn btn-sm">Accept</button>
+            <button id="cookieReject" class="btn btn-secondary btn-sm">Reject</button>
         </div>
     </div>
 
