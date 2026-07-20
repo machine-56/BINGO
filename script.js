@@ -374,13 +374,70 @@ function checkBingoProgress() {
             });
         }
     });
+
     trackerCells.forEach((tc, idx) => {
         if (idx < completedLinesCount) {
-            tc.classList.add('active');
+            if (!tc.classList.contains('active')) {
+                tc.classList.add('active');
+            }
         } else {
             if (!isGameStarted) tc.classList.remove('active');
         }
     });
+
+    // Check if the user reached exactly 5 completed lines for the grand finale
+    if (completedLinesCount === 5 && !document.querySelector('.global-canvas')) {
+        triggerGrandFinale();
+    }
+}
+
+// Spawns 6-8 continuous random bursts across the viewport for 5 seconds
+function triggerGrandFinale() {
+    const mainCanvas = document.createElement('div');
+    mainCanvas.classList.add('confetti-wrapper', 'global-canvas');
+    document.body.appendChild(mainCanvas);
+
+    const colors = ['#0055ff', '#dc3545', '#ffc107', '#2d4a2c', '#ffffff'];
+
+    // Function to generate a single distinct explosion cluster anywhere on screen
+    function spawnCluster() {
+        const randomX = Math.random() * 100; // Viewport width %
+        const randomY = Math.random() * 100; // Viewport height %
+
+        for (let i = 0; i < 25; i++) {
+            const piece = document.createElement('div');
+            piece.classList.add('confetti-piece');
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 90; 
+            const x = Math.cos(angle) * distance;
+            const y = Math.sin(angle) * distance;
+            const rotation = Math.random() * 360;
+
+            piece.style.setProperty('--x-start', `${randomX}vw`);
+            piece.style.setProperty('--y-start', `${randomY}vh`);
+            piece.style.setProperty('--x', `${x}px`);
+            piece.style.setProperty('--y', `${y}px`);
+            piece.style.setProperty('--r', `${rotation}deg`);
+            
+            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            if (Math.random() > 0.5) piece.style.borderRadius = '0%';
+
+            mainCanvas.appendChild(piece);
+
+            // Cleanup individual elements after animation cycle expires
+            setTimeout(() => piece.remove(), 1200);
+        }
+    }
+
+    // Keep spawning clusters every 600ms to maintain roughly 6-8 active pops at once
+    const burstInterval = setInterval(spawnCluster, 600);
+
+    // Hard kill the entire parade after exactly 5000ms
+    setTimeout(() => {
+        clearInterval(burstInterval);
+        mainCanvas.remove();
+    }, 5000);
 }
 
 startBtn.addEventListener('click', () => {
