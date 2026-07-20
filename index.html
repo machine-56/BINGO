@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Another Bingo Game</title>
+    <!-- FontAwesome for the icons you requested -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            min-height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        /* BINGO Tracker Headers */
+        .bingo-tracker {
+            display: flex;
+            justify-content: space-evenly;
+            width: max-content;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tracker-cell {
+            width: 45px;
+            height: 45px;
+            border: 2px solid #ffffff;
+            background-color: #000000;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            border-radius: 4px;
+        }
+
+        .tracker-cell.active {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        /* Responsive Square Grid Wrapper */
+        .grid-wrapper {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 4px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-wrapper {
+                height: 60vh; /* Sits right between your 50% and 70% requirement */
+                width: auto;
+            }
+        }
+
+        /* The Grid Cells */
+        .cell {
+            background-color: #000000;
+            border: 3px solid #ffffff;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.3ms ease-in-out, color 0.3ms ease-in-out;
+        }
+
+        /* Play Mode States */
+        .cell.temp {
+            background-color: #a3ddff;
+            color: #000000;
+        }
+
+        .cell.confirmed {
+            background-color: #dee0e1;
+            color: #000000;
+            pointer-events: none; /* Can't click it anymore */
+        }
+
+        /* Controls Area */
+        .controls {
+            margin-top: 2.5rem; /* Fallback for min mt-5 vibe */
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-success { background-color: #198754; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+
+        /* Modal Structure because native alerts are ugly */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.show {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-box {
+            background: #222;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px solid #fff;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Letter Tracker -->
+    <div class="bingo-tracker">
+        <div class="tracker-cell" onclick="this.classList.toggle('active')">B</div>
+        <div class="tracker-cell" onclick="this.classList.toggle('active')">I</div>
+        <div class="tracker-cell" onclick="this.classList.toggle('active')">N</div>
+        <div class="tracker-cell" onclick="this.classList.toggle('active')">G</div>
+        <div class="tracker-cell" onclick="this.classList.toggle('active')">O</div>
+    </div>
+
+    <!-- 5x5 Grid -->
+    <div class="grid-wrapper" id="bingoGrid"></div>
+
+    <!-- Actions -->
+    <div class="controls">
+        <button id="startBtn" class="btn btn-success" disabled>
+            <i class="fa-solid fa-play"></i> Start
+        </button>
+        <button id="resetBtn" class="btn btn-danger">
+            <i class="fa-solid fa-arrow-rotate-left"></i> Reset
+        </button>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box">
+            <h3>Start a new game?</h3>
+            <p style="margin-top: 0.5rem; color: #aaa;">This will wipe your current grid clean.</p>
+            <div class="modal-actions">
+                <button class="btn btn-success" id="modalYes">Yes</button>
+                <button class="btn btn-secondary" id="modalNo">No</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const grid = document.getElementById('bingoGrid');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const modal = document.getElementById('confirmModal');
+        
+        let currentNumber = 1;
+        let isGameStarted = false;
+        let fillHistory = []; // Stack to keep track of the cell fill order
+
+        // Generate the 25 cells
+        for (let i = 0; i < 25; i++) {
+            const cell = document.createElement('div');
+            cell.classList.add('cell');
+            cell.dataset.index = i;
+            cell.addEventListener('click', () => handleCellClick(cell));
+            grid.appendChild(cell);
+        }
+
+        function handleCellClick(cell) {
+            if (!isGameStarted) {
+                // Setup Mode Logic
+                if (!cell.textContent) {
+                    // Cell is empty, fill it
+                    cell.textContent = currentNumber;
+                    fillHistory.push(cell);
+                    currentNumber++;
+                } else {
+                    // Cell is filled. Only allow clear if it was the absolute last one clicked
+                    const lastFilledCell = fillHistory[fillHistory.length - 1];
+                    if (cell === lastFilledCell) {
+                        cell.textContent = '';
+                        fillHistory.pop();
+                        currentNumber--;
+                    }
+                }
+                // Toggle the start button if we hit exactly 25 filled cells
+                startBtn.disabled = fillHistory.length !== 25;
+
+            } else {
+                // Play Mode Logic (Two-click validation)
+                if (cell.classList.contains('temp')) {
+                    // Second click confirms it
+                    cell.classList.remove('temp');
+                    cell.classList.add('confirmed');
+                } else if (!cell.classList.contains('confirmed')) {
+                    // First click sets temporary highlight
+                    // Clear any other lingering temp states first to avoid confusion
+                    document.querySelectorAll('.cell.temp').forEach(c => c.classList.remove('temp'));
+                    cell.classList.add('temp');
+                }
+            }
+        }
+
+        // Start Button trigger
+        startBtn.addEventListener('click', () => {
+            if (!isGameStarted) {
+                // Lock setup phase down
+                isGameStarted = true;
+                startBtn.innerHTML = '<i class="fa-regular fa-circle-question"></i>';
+                startBtn.className = 'btn btn-secondary';
+            } else {
+                // It is now a question button, launch modal
+                modal.classList.add('show');
+            }
+        });
+
+        // Reset Actions
+        resetBtn.addEventListener('click', clearBoard);
+        document.getElementById('modalYes').addEventListener('click', () => {
+            modal.classList.remove('show');
+            clearBoard();
+        });
+        document.getElementById('modalNo').addEventListener('click', () => {
+            modal.classList.remove('show');
+        });
+
+        function clearBoard() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.textContent = '';
+                cell.className = 'cell';
+            });
+            document.querySelectorAll('.tracker-cell').forEach(tc => tc.classList.remove('active'));
+            
+            currentNumber = 1;
+            isGameStarted = false;
+            fillHistory = [];
+            
+            // Revert Start button back to baseline setup configuration
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Start';
+            startBtn.className = 'btn btn-success';
+        }
+    </script>
+</body>
+</html>
