@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Another Bingo Game</title>
-    <!-- FontAwesome for the icons you requested -->
+    <title>Automated Bingo Grid</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -50,6 +49,7 @@
             cursor: pointer;
             transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
             border-radius: 4px;
+            user-select: none;
         }
 
         .tracker-cell.active {
@@ -69,13 +69,14 @@
 
         @media (min-width: 768px) {
             .grid-wrapper {
-                height: 60vh; /* Sits right between your 50% and 70% requirement */
+                height: 60vh;
                 width: auto;
             }
         }
 
         /* The Grid Cells */
         .cell {
+            position: relative;
             background-color: #000000;
             border: 3px solid #ffffff;
             color: #ffffff;
@@ -95,15 +96,68 @@
             color: #000000;
         }
 
+        /* Confirmed state transforms the raw text into a solid marker dot */
         .cell.confirmed {
             background-color: #dee0e1;
-            color: #000000;
-            pointer-events: none; /* Can't click it anymore */
+            color: transparent; /* Hides the number text entirely */
+        }
+
+        .cell.confirmed::before {
+            content: '';
+            position: absolute;
+            width: 16px; /* Dot size proportional to numbers */
+            height: 16px;
+            background-color: #000000;
+            border-radius: 50%;
+            z-index: 1;
+        }
+
+        /* Base rule for strike lines */
+        .cell[class*="strike-"]::after {
+            content: '';
+            position: absolute;
+            background-color: #dc3545; /* Crimson line color */
+            z-index: 2; /* Sits over the confirmed dot */
+            pointer-events: none;
+            border-radius: 2px;
+        }
+
+        /* Directional Line Styles */
+        .cell.strike-horizontal::after {
+            width: 100%;
+            height: 4px;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+        }
+
+        .cell.strike-vertical::after {
+            width: 4px;
+            height: 100%;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+        }
+
+        .cell.strike-diagonal-left::after {
+            width: 145%; /* Hypotenuse coverage factor */
+            height: 4px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .cell.strike-diagonal-right::after {
+            width: 145%;
+            height: 4px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
         }
 
         /* Controls Area */
         .controls {
-            margin-top: 2.5rem; /* Fallback for min mt-5 vibe */
+            margin-top: 2.5rem;
             display: flex;
             gap: 1.5rem;
         }
@@ -129,7 +183,7 @@
         .btn-danger { background-color: #dc3545; color: white; }
         .btn-secondary { background-color: #6c757d; color: white; }
 
-        /* Modal Structure because native alerts are ugly */
+        /* Modal Structure */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -172,12 +226,12 @@
 <body>
 
     <!-- Letter Tracker -->
-    <div class="bingo-tracker">
-        <div class="tracker-cell" onclick="this.classList.toggle('active')">B</div>
-        <div class="tracker-cell" onclick="this.classList.toggle('active')">I</div>
-        <div class="tracker-cell" onclick="this.classList.toggle('active')">N</div>
-        <div class="tracker-cell" onclick="this.classList.toggle('active')">G</div>
-        <div class="tracker-cell" onclick="this.classList.toggle('active')">O</div>
+    <div class="bingo-tracker" id="trackerGroup">
+        <div class="tracker-cell">B</div>
+        <div class="tracker-cell">I</div>
+        <div class="tracker-cell">N</div>
+        <div class="tracker-cell">G</div>
+        <div class="tracker-cell">O</div>
     </div>
 
     <!-- 5x5 Grid -->
@@ -210,30 +264,56 @@
         const startBtn = document.getElementById('startBtn');
         const resetBtn = document.getElementById('resetBtn');
         const modal = document.getElementById('confirmModal');
+        const trackerCells = document.querySelectorAll('.tracker-cell');
         
         let currentNumber = 1;
         let isGameStarted = false;
-        let fillHistory = []; // Stack to keep track of the cell fill order
+        let fillHistory = []; 
+        let cellElements = [];
 
-        // Generate the 25 cells
+        // Categorized win lines to trace directional paths precisely
+        const winLines = [
+            { type: 'strike-horizontal', cells: [0, 1, 2, 3, 4] },
+            { type: 'strike-horizontal', cells: [5, 6, 7, 8, 9] },
+            { type: 'strike-horizontal', cells: [10, 11, 12, 13, 14] },
+            { type: 'strike-horizontal', cells: [15, 16, 17, 18, 19] },
+            { type: 'strike-horizontal', cells: [20, 21, 22, 23, 24] },
+            
+            { type: 'strike-vertical', cells: [0, 5, 10, 15, 20] },
+            { type: 'strike-vertical', cells: [1, 6, 11, 16, 21] },
+            { type: 'strike-vertical', cells: [2, 7, 12, 17, 22] },
+            { type: 'strike-vertical', cells: [3, 8, 13, 18, 23] },
+            { type: 'strike-vertical', cells: [4, 9, 14, 19, 24] },
+            
+            { type: 'strike-diagonal-left', cells: [0, 6, 12, 18, 24] },  // Top-Left to Bottom-Right (\)
+            { type: 'strike-diagonal-right', cells: [4, 8, 12, 16, 20] }  // Top-Right to Bottom-Left (/)
+        ];
+
+        // Generate cells
         for (let i = 0; i < 25; i++) {
             const cell = document.createElement('div');
             cell.classList.add('cell');
             cell.dataset.index = i;
             cell.addEventListener('click', () => handleCellClick(cell));
             grid.appendChild(cell);
+            cellElements.push(cell);
         }
+
+        // Keep tracker cell overrides active only outside game runtime
+        trackerCells.forEach(tc => {
+            tc.addEventListener('click', () => {
+                if (!isGameStarted) tc.classList.toggle('active');
+            });
+        });
 
         function handleCellClick(cell) {
             if (!isGameStarted) {
-                // Setup Mode Logic
+                // Setup Phase
                 if (!cell.textContent) {
-                    // Cell is empty, fill it
                     cell.textContent = currentNumber;
                     fillHistory.push(cell);
                     currentNumber++;
                 } else {
-                    // Cell is filled. Only allow clear if it was the absolute last one clicked
                     const lastFilledCell = fillHistory[fillHistory.length - 1];
                     if (cell === lastFilledCell) {
                         cell.textContent = '';
@@ -241,38 +321,61 @@
                         currentNumber--;
                     }
                 }
-                // Toggle the start button if we hit exactly 25 filled cells
                 startBtn.disabled = fillHistory.length !== 25;
 
             } else {
-                // Play Mode Logic (Two-click validation)
+                // Play Phase
+                if (cell.classList.contains('confirmed')) return; 
+
                 if (cell.classList.contains('temp')) {
-                    // Second click confirms it
                     cell.classList.remove('temp');
                     cell.classList.add('confirmed');
-                } else if (!cell.classList.contains('confirmed')) {
-                    // First click sets temporary highlight
-                    // Clear any other lingering temp states first to avoid confusion
+                    checkBingoProgress(); 
+                } else {
                     document.querySelectorAll('.cell.temp').forEach(c => c.classList.remove('temp'));
                     cell.classList.add('temp');
                 }
             }
         }
 
-        // Start Button trigger
+        function checkBingoProgress() {
+            let completedLinesCount = 0;
+
+            // Clear old strike styles to cleanly re-evaluate overlapping states
+            cellElements.forEach(cell => {
+                cell.classList.remove('strike-horizontal', 'strike-vertical', 'strike-diagonal-left', 'strike-diagonal-right');
+            });
+
+            winLines.forEach(line => {
+                const isLineComplete = line.cells.every(index => cellElements[index].classList.contains('confirmed'));
+                
+                if (isLineComplete) {
+                    completedLinesCount++;
+                    // Inject correct angle layout directly onto the winning sequence nodes
+                    line.cells.forEach(index => cellElements[index].classList.add(line.type));
+                }
+            });
+
+            // Map completed rows to the B-I-N-G-O text banner sequence
+            trackerCells.forEach((tc, idx) => {
+                if (idx < completedLinesCount) {
+                    tc.classList.add('active');
+                } else {
+                    tc.classList.remove('active');
+                }
+            });
+        }
+
         startBtn.addEventListener('click', () => {
             if (!isGameStarted) {
-                // Lock setup phase down
                 isGameStarted = true;
                 startBtn.innerHTML = '<i class="fa-regular fa-circle-question"></i>';
                 startBtn.className = 'btn btn-secondary';
             } else {
-                // It is now a question button, launch modal
                 modal.classList.add('show');
             }
         });
 
-        // Reset Actions
         resetBtn.addEventListener('click', clearBoard);
         document.getElementById('modalYes').addEventListener('click', () => {
             modal.classList.remove('show');
@@ -283,17 +386,16 @@
         });
 
         function clearBoard() {
-            document.querySelectorAll('.cell').forEach(cell => {
+            cellElements.forEach(cell => {
                 cell.textContent = '';
                 cell.className = 'cell';
             });
-            document.querySelectorAll('.tracker-cell').forEach(tc => tc.classList.remove('active'));
+            trackerCells.forEach(tc => tc.classList.remove('active'));
             
             currentNumber = 1;
             isGameStarted = false;
             fillHistory = [];
             
-            // Revert Start button back to baseline setup configuration
             startBtn.disabled = true;
             startBtn.innerHTML = '<i class="fa-solid fa-play"></i> Start';
             startBtn.className = 'btn btn-success';
